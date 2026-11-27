@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Events ────────────────────────────────────────────
+    // A user can read/write only their own events.
+    match /events/{eventId} {
+      // READ: authenticated user may read their own event
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+
+      // CREATE: authenticated user may create an event for themselves
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() >= 1
+                    && request.resource.data.description is string
+                    && request.resource.data.category is string;
+
+      // UPDATE: authenticated user may update their own events
+      allow update: if request.auth != null
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == request.auth.uid;
+
+      // DELETE: authenticated user may delete their own events
+      allow delete: if request.auth != null
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // All other documents are denied by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
